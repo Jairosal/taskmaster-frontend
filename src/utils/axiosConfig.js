@@ -7,7 +7,10 @@ const instance = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-  }
+  },
+  // Añade estas dos líneas para CORS
+  withCredentials: true,
+  credentials: 'include'
 });
 
 // Lista de rutas que no necesitan token
@@ -25,6 +28,11 @@ const longProcessRoutes = [
 
 instance.interceptors.request.use(
   (config) => {
+    // Asegúrate de que las URLs empiecen con /
+    if (!config.url.startsWith('/') && !config.url.startsWith('http')) {
+      config.url = '/' + config.url;
+    }
+
     // Ajusta el timeout para rutas que pueden tomar más tiempo
     if (longProcessRoutes.some(route => config.url.includes(route))) {
       config.timeout = 30000; // 30 segundos para estas rutas
@@ -59,7 +67,6 @@ instance.interceptors.response.use(
     // Manejo específico para errores de timeout
     if (error.code === 'ECONNABORTED') {
       console.log('La operación está tomando más tiempo de lo esperado...');
-      // Si quieres puedes intentar nuevamente la petición
       return Promise.reject({
         ...error,
         message: 'La operación está tomando más tiempo de lo esperado. Por favor, inténtelo nuevamente.'
